@@ -1,0 +1,7 @@
+{
+  "name": "pico-react-demo",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "bun server.js"
+  }
+}
