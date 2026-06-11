@@ -46,11 +46,13 @@ export const RenderContext = {
 
     this.childCursor = newCursor
 
-    const result = fn()
-
-    this.childCursor = prev
-
-    return result
+    try {
+      return fn()
+    } finally {
+      // Restore even if a component throws mid-render, so the next
+      // rerender doesn't walk a corrupted cursor - J
+      this.childCursor = prev
+    }
   },
 
   /**

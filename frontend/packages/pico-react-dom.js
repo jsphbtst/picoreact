@@ -78,55 +78,60 @@ export function renderVDOM(vdomNode, parentFiber = null, isRerender = false) {
   return RenderContext.withChildScope(fiber.child, () => renderVDOM(rendered, fiber, isRerender))
 }
 
-export function createRoot(domNode) {
-  let vDOM
-  let elements
-  let CurrentComponent
-  let rootFiber = null
+class Root {
+  constructor(domNode) {
+    this.domNode = domNode
+    this.vDOM = null
+    this.elements = null
+    this.CurrentComponent = null
+    this.rootFiber = null
+  }
 
-  function render(Component) {
-    CurrentComponent = Component
-
-    if (elements === undefined) {
-      rootFiber = new Fiber(Component, {}, null)
-      setCurrentFiber(rootFiber)
-
-      rootFiber.resetHookIndex()
-      rootFiber.resetEffectIndex()
-
-      const rawVDOM = Component()
-      vDOM = renderVDOM(rawVDOM, rootFiber, false)
-
-      elements = convert(vDOM)
-      domNode.replaceChildren(elements)
-
-      runEffects(rootFiber)
-    } else {
+  render(Component) {
+    if (this.elements !== null) {
       throw new Error(
         'Cannot call render() multiple times on the same root. Feature currently not supported.'
       )
     }
+
+    this.CurrentComponent = Component
+    this.rootFiber = new Fiber(Component, {}, null)
+
+    setCurrentFiber(this.rootFiber)
+    this.rootFiber.resetHookIndex()
+    this.rootFiber.resetEffectIndex()
+
+    const rawVDOM = Component()
+    this.vDOM = renderVDOM(rawVDOM, this.rootFiber, false)
+
+    this.elements = convert(this.vDOM)
+    this.domNode.replaceChildren(this.elements)
+
+    runEffects(this.rootFiber)
   }
 
-  function rerender() {
-    if (CurrentComponent && rootFiber) {
-      // Set up context for rerender pass - J
-      RenderContext.beginRerender(rootFiber)
-      rootFiber.resetHookIndex()
-      rootFiber.resetEffectIndex()
-
-      let prevVDOM = vDOM
-
-      const rawNewVDOM = CurrentComponent()
-      let newVDOM = renderVDOM(rawNewVDOM, rootFiber, true)
-      vDOM = diffVDOM(elements, prevVDOM, newVDOM)
-
-      runEffects(rootFiber)
+  rerender() {
+    if (!this.CurrentComponent || !this.rootFiber) {
+      return
     }
+
+    // Set up context for rerender pass - J
+    RenderContext.beginRerender(this.rootFiber)
+    this.rootFiber.resetHookIndex()
+    this.rootFiber.resetEffectIndex()
+
+    const prevVDOM = this.vDOM
+
+    const rawNewVDOM = this.CurrentComponent()
+    const newVDOM = renderVDOM(rawNewVDOM, this.rootFiber, true)
+    this.vDOM = diffVDOM(this.elements, prevVDOM, newVDOM)
+
+    runEffects(this.rootFiber)
   }
+}
 
-  const root = { render, rerender }
-
+export function createRoot(domNode) {
+  const root = new Root(domNode)
   setRoot(root)
   return root
 }
